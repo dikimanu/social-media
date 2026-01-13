@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { ArrowLeft, TextIcon, ImageIcon, Sparkle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import api from '../api/axios'
+import { useAuth } from '@clerk/clerk-react'
 
 const StoryModal = ({ setShowModal, fetchStories }) => {
   const bgColors = [
@@ -15,13 +17,49 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
   const [text, setText] = useState('')
   const [media, setMedia] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const { getToken } = useAuth()
+  const MAX_VIDEO_DURATION = 60 // seconds
+  const MAX_VIDEO_SIZE_MB = 50 // MB
 
   const handleMediaUpload = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    setMedia(file)
-    setPreviewUrl(URL.createObjectURL(file))
+    // Revoke previous preview to prevent memory leaks
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl(null)
+
+    if (file.type.startsWith("video")) {
+      if (file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+        toast.error(`Video cannot exceed ${MAX_VIDEO_SIZE_MB} MB.`)
+        setMedia(null)
+        return
+      }
+
+      const video = document.createElement('video')
+      video.preload = 'metadata'
+
+      video.addEventListener('loadedmetadata', () => {
+        window.URL.revokeObjectURL(video.src)
+        if (video.duration > MAX_VIDEO_DURATION) {
+          toast.error(`Video duration cannot exceed ${MAX_VIDEO_DURATION} seconds.`)
+          setMedia(null)
+          setPreviewUrl(null)
+        } else {
+          setMedia(file)
+          setPreviewUrl(URL.createObjectURL(file))
+          setText('')
+          setMode('media')
+        }
+      })
+
+      video.src = URL.createObjectURL(file)
+    } else if (file.type.startsWith("image")) {
+      setMedia(file)
+      setPreviewUrl(URL.createObjectURL(file))
+      setText('')
+      setMode('media')
+    }
   }
 
   useEffect(() => {
@@ -31,23 +69,56 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
   }, [previewUrl])
 
   const handleCreateStory = async () => {
-    // simulate API call
-    await new Promise((res) => setTimeout(res, 800))
+    const media_type =
+      mode === 'media'
+        ? media?.type.startsWith('image') ? 'image' : 'video'
+        : 'text'
 
-    fetchStories()
-    setShowModal(false)
+    if (media_type === 'text' && !text.trim()) {
+      toast.error("Please enter some text")
+      return
+    }
+
+    try {
+      const formData = new FormData()
+      formData.append('content', text)
+      formData.append('media_type', media_type)
+      if (media) formData.append('media', media)
+      formData.append('background_color', background)
+
+      const token = await getToken()
+      const { data } = await api.post('/api/story/create', formData, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
+      if (data.success) {
+        setShowModal(false)
+        toast.success("Story created successfully")
+        fetchStories()
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message)
+    }
   }
 
-  const isTextLightBg = background === '#ffffff' || background === '#eab308'
+  const isTextLightBg = ['#ffffff', '#eab308'].includes(background)
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Create Story Modal"
+    >
       <div className="w-full max-w-md text-white">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => setShowModal(false)}
             className="p-2 hover:bg-white/10 rounded-full"
+            aria-label="Close Story Modal"
           >
             <ArrowLeft />
           </button>
@@ -73,7 +144,7 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
 
           {mode === 'media' && previewUrl && (
             media?.type.startsWith('image') ? (
-              <img src={previewUrl} alt="" className="object-contain max-h-full" />
+              <img src={previewUrl} alt="preview" className="object-contain max-h-full" />
             ) : (
               <video src={previewUrl} className="object-contain max-h-full" controls />
             )
@@ -89,6 +160,7 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
                 onClick={() => setBackground(color)}
                 className="w-6 h-6 rounded-full ring ring-white/40"
                 style={{ backgroundColor: color }}
+                aria-label={`Select background color ${color}`}
               />
             ))}
           </div>
@@ -100,6 +172,7 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
             onClick={() => {
               setMode('text')
               setMedia(null)
+              if (previewUrl) URL.revokeObjectURL(previewUrl)
               setPreviewUrl(null)
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded ${
@@ -119,11 +192,7 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
               type="file"
               accept="image/*,video/*"
               hidden
-              onChange={(e) => {
-                setMode('media')
-                setBackground('#000000')
-                handleMediaUpload(e)
-              }}
+              onChange={handleMediaUpload}
             />
           </label>
         </div>
@@ -133,8 +202,6 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
           onClick={() =>
             toast.promise(handleCreateStory(), {
               loading: 'Saving...',
-              success: 'Story added',
-              error: (e) => e?.message || 'Failed to add story',
             })
           }
           disabled={mode === 'text' ? !text.trim() : !media}

@@ -1,39 +1,69 @@
-import React, { useState } from 'react'
-import { dummyUserData } from '../assets/assets'
+import React, { useState, useEffect } from 'react'
 import { Pencil } from 'lucide-react'
+import { useDispatch, useSelector } from 'react-redux'
+import { updateUser } from '../features/user/userSlice'
+import { useAuth } from '@clerk/clerk-react'
+import toast from 'react-hot-toast'
 
 const ProfileModal = ({ setShowEdit }) => {
-  const user = dummyUserData
+  const dispatch = useDispatch()
+  const { getToken } = useAuth()
+  const user = useSelector((state) => state.user.value) ?? {}
 
   const [editForm, setEditForm] = useState({
-    username: user.username,
-    bio: user.bio,
-    location: user.location,
+    username: user.username || '',
+    bio: user.bio || '',
+    location: user.location || '',
     profile_picture: null,
     cover_photo: null,
-    full_name: user.full_name,
+    full_name: user.full_name || '',
   })
+
+  // Cleanup object URLs to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (editForm.profile_picture) URL.revokeObjectURL(editForm.profile_picture)
+      if (editForm.cover_photo) URL.revokeObjectURL(editForm.cover_photo)
+    }
+  }, [editForm.profile_picture, editForm.cover_photo])
 
   const handleSaveProfile = async (e) => {
     e.preventDefault()
-    setShowEdit(false)
+    try {
+      const userData = new FormData()
+      const { full_name, username, bio, location, profile_picture, cover_photo } = editForm
+
+      userData.append('username', username)
+      userData.append('bio', bio)
+      userData.append('location', location)
+      userData.append('full_name', full_name)
+
+      if (profile_picture) userData.append('profile', profile_picture)
+      if (cover_photo) userData.append('cover', cover_photo)
+
+      const token = await getToken()
+      dispatch(updateUser({ userData, token }))
+      setShowEdit(false)
+    } catch (error) {
+      toast.error(error.message)
+    }
   }
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto">
       <div className="max-w-2xl mx-auto py-8 px-4">
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">
-            Edit Profile
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">Edit Profile</h1>
 
-          <form className="space-y-5" onSubmit={handleSaveProfile}>
+          <form
+            className="space-y-5"
+            onSubmit={(e) =>
+              toast.promise(handleSaveProfile(e), { loading: 'Saving...', success: 'Saved!', error: 'Failed' })
+            }
+          >
             {/* Profile Picture */}
             <div>
-              <label className="text-sm font-medium text-gray-700">
-                Profile Picture
-              </label>
-
+              <label className="text-sm font-medium text-gray-700">Profile Picture</label>
               <label
                 htmlFor="profile_picture"
                 className="relative group block w-fit mt-2 cursor-pointer"
@@ -42,37 +72,29 @@ const ProfileModal = ({ setShowEdit }) => {
                   src={
                     editForm.profile_picture
                       ? URL.createObjectURL(editForm.profile_picture)
-                      : user.profile_picture
+                      : user.profile_picture || ''
                   }
                   alt=""
                   className="w-24 h-24 rounded-full object-cover"
                 />
-
                 <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
                   <Pencil className="w-5 h-5 text-white" />
                 </div>
               </label>
-
               <input
                 hidden
                 type="file"
                 accept="image/*"
                 id="profile_picture"
                 onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    profile_picture: e.target.files[0],
-                  })
+                  setEditForm({ ...editForm, profile_picture: e.target.files[0] })
                 }
               />
             </div>
 
             {/* Cover Photo */}
             <div>
-              <label className="text-sm font-medium text-gray-700">
-                Cover Photo
-              </label>
-
+              <label className="text-sm font-medium text-gray-700">Cover Photo</label>
               <label
                 htmlFor="cover_photo"
                 className="relative group block mt-2 cursor-pointer"
@@ -81,32 +103,27 @@ const ProfileModal = ({ setShowEdit }) => {
                   src={
                     editForm.cover_photo
                       ? URL.createObjectURL(editForm.cover_photo)
-                      : user.cover_photo
+                      : user.cover_photo || ''
                   }
                   alt=""
                   className="w-full h-40 object-cover rounded-lg"
                 />
-
                 <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
                   <Pencil className="w-5 h-5 text-white" />
                 </div>
               </label>
-
               <input
                 hidden
                 type="file"
                 accept="image/*"
                 id="cover_photo"
                 onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    cover_photo: e.target.files[0],
-                  })
+                  setEditForm({ ...editForm, cover_photo: e.target.files[0] })
                 }
               />
             </div>
 
-            {/* Inputs */}
+            {/* Name */}
             <div>
               <label className="text-sm font-medium">Name</label>
               <input
@@ -120,6 +137,7 @@ const ProfileModal = ({ setShowEdit }) => {
               />
             </div>
 
+            {/* Username */}
             <div>
               <label className="text-sm font-medium">Username</label>
               <input
@@ -133,6 +151,7 @@ const ProfileModal = ({ setShowEdit }) => {
               />
             </div>
 
+            {/* Bio */}
             <div>
               <label className="text-sm font-medium">Bio</label>
               <textarea
@@ -146,6 +165,7 @@ const ProfileModal = ({ setShowEdit }) => {
               />
             </div>
 
+            {/* Location */}
             <div>
               <label className="text-sm font-medium">Location</label>
               <input

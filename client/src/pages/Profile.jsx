@@ -1,37 +1,60 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import moment from 'moment'
-import { dummyPostsData, dummyUserData } from '../assets/assets'
 import Loading from '../components/Loading'
 import UserProfileInfo from '../components/UserProfileInfo'
 import PostCard from '../components/PostCard'
 import ProfileModal from '../components/ProfileModal'
+import { useAuth } from '@clerk/clerk-react'
+import api from '../api/axios.js'
+import { useSelector } from 'react-redux'
+import toast from 'react-hot-toast'
 
 const Profile = () => {
+  const currentUser = useSelector((state) => state.user.value)
+  const { getToken } = useAuth()
   const { profileId } = useParams()
 
   const [user, setUser] = useState(null)
-  const [posts, setPosts] = useState([])   // ✅ fixed
+  const [posts, setPosts] = useState([])
   const [activeTab, setActiveTab] = useState('posts')
   const [showEdit, setShowEdit] = useState(false)
 
+  // Fetch profile (own or other)
   const fetchUser = async () => {
-    setUser(dummyUserData)
-    setPosts(dummyPostsData)               // ✅ fixed
+    try {
+      const token = await getToken()
+      const idToFetch = profileId || currentUser?._id
+
+      const { data } = await api.post(
+        '/api/user/profiles',
+        { profileId: idToFetch },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      if (data.success) {
+        setUser(data.profile)
+        setPosts(data.posts || [])
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Something went wrong')
+    }
   }
 
   useEffect(() => {
-    fetchUser()
-  }, [])
+    if (currentUser) fetchUser()
+  }, [profileId, currentUser?._id])
 
-  return user ? (
+  if (!user) return <Loading />
+
+  return (
     <div className="relative h-full overflow-y-scroll bg-gray-50 p-6">
       <div className="max-w-3xl mx-auto">
-
-        {/* profile card */}
+        {/* Profile Card */}
         <div className="bg-white rounded-2xl shadow overflow-hidden">
-
-          {/* cover photo */}
+          {/* Cover Photo */}
           <div className="h-48 bg-gray-200">
             {user.cover_photo && (
               <img
@@ -42,12 +65,13 @@ const Profile = () => {
             )}
           </div>
 
-          {/* user info */}
+          {/* User Info */}
           <UserProfileInfo
             user={user}
             posts={posts}
-            profileId={profileId}
+            profileId={profileId || currentUser?._id}
             setShowEdit={setShowEdit}
+            currentUserId={currentUser?._id}
           />
         </div>
 
@@ -59,18 +83,14 @@ const Profile = () => {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors
-                  ${
-                    activeTab === tab
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                  ${activeTab === tab ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-900'}`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </div>
 
-          {/* posts */}
+          {/* Posts */}
           {activeTab === 'posts' && (
             <div className="mt-6 space-y-6">
               {posts.map((post) => (
@@ -79,17 +99,18 @@ const Profile = () => {
             </div>
           )}
 
-          {/* media */}
+          {/* Media */}
           {activeTab === 'media' && (
             <div className="flex flex-wrap gap-4 mt-6 max-w-6xl">
               {posts
-                .filter((post) => post.image_urls.length > 0)
+                .filter((post) => post.image_urls?.length > 0)
                 .map((post) =>
                   post.image_urls.map((image, index) => (
-                    <Link
-                      key={`${post._id}-${index}`}   // ✅ fixed key
+                    <a
+                      key={`${post._id}-${index}`}
+                      href={image}
                       target="_blank"
-                      to={image}
+                      rel="noopener noreferrer"
                       className="relative group"
                     >
                       <img
@@ -102,7 +123,7 @@ const Profile = () => {
                         group-hover:opacity-100 transition duration-300">
                         Posted {moment(post.createdAt).fromNow()}
                       </p>
-                    </Link>
+                    </a>
                   ))
                 )}
             </div>
@@ -110,11 +131,9 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* edit profile modal */}
+      {/* Edit Profile Modal */}
       {showEdit && <ProfileModal setShowEdit={setShowEdit} />}
     </div>
-  ) : (
-    <Loading />
   )
 }
 

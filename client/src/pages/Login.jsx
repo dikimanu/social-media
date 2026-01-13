@@ -36,7 +36,7 @@ const Login = () => {
                   .map((_, i) => (
                     <Star
                       key={i}
-                      className="size-4 md:size-4.5 text-transparent fill-amber-500"
+                      className="size-4 md:size-5 text-transparent fill-amber-500"
                     />
                   ))}
               </div>

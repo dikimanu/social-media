@@ -1,50 +1,72 @@
 import React, { useState } from 'react'
 import { BadgeCheck, Heart, MessageCircle, Share2 } from 'lucide-react'
 import moment from 'moment'
-import { dummyUserData } from '../assets/assets'
 import { useNavigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+import { useAuth } from '@clerk/clerk-react'
+import api from '../api/axios'
+import toast from 'react-hot-toast'
 
 const PostCard = ({ post }) => {
+  const currentUser = useSelector((state) => state.user.value) ?? {}
+  const { getToken } = useAuth()
+  const navigate = useNavigate()
+  const [likes, setLikes] = useState(post.likes || [])
+
+  // Highlight hashtags
   const postWithHashtags = post.content?.replace(
     /(#\w+)/g,
     '<span class="text-indigo-700 font-medium">$1</span>'
   )
 
-  const currentUser = dummyUserData
-  const [likes, setLikes] = useState(post.likes || [])
+  const handleLike = async () => {
+    try {
+      const token = await getToken()
+      const { data } = await api.post(
+        '/api/post/like',
+        { postId: post._id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
 
-  const handleLike = () => {
-    if (likes.includes(currentUser._id)) {
-      setLikes(likes.filter(id => id !== currentUser._id))
-    } else {
-      setLikes([...likes, currentUser._id])
+      if (data.success) {
+        toast.success(data.message)
+        setLikes((prev) =>
+          prev.includes(currentUser._id)
+            ? prev.filter((id) => id !== currentUser._id)
+            : [...prev, currentUser._id]
+        )
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.message)
     }
   }
 
-  const navigate = useNavigate()
-
   return (
     <div className="bg-white rounded-lg shadow p-4 space-y-4">
-      
-      {/* user info */}
-      <div onClick={()=> navigate('/profile/' + post.user._id)} className="flex items-center gap-3">
+      {/* User info */}
+      <div
+        onClick={() => navigate(`/profile/${post.user?._id}`)}
+        className="flex items-center gap-3 cursor-pointer"
+      >
         <img
-          src={post.user.profile_picture}
+          src={post.user?.profile_picture || ''}
           alt=""
           className="w-10 h-10 rounded-full object-cover"
         />
         <div>
           <div className="flex items-center gap-1 font-medium">
-            <span>{post.user.full_name}</span>
+            <span>{post.user?.full_name || 'Unknown'}</span>
             <BadgeCheck className="w-4 h-4 text-blue-500" />
           </div>
           <div className="text-sm text-gray-500">
-            @{post.user.username} · {moment(post.createdAt).fromNow()}
+            @{post.user?.username || 'username'} · {moment(post.createdAt).fromNow()}
           </div>
         </div>
       </div>
 
-      {/* content */}
+      {/* Content */}
       {post.content && (
         <div
           className="text-gray-800"
@@ -52,7 +74,7 @@ const PostCard = ({ post }) => {
         />
       )}
 
-      {/* images */}
+      {/* Images */}
       {post.image_urls?.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
           {post.image_urls.map((img, index) => (
@@ -68,15 +90,13 @@ const PostCard = ({ post }) => {
         </div>
       )}
 
-      {/* actions */}
+      {/* Actions */}
       <div className="flex items-center gap-6 pt-2 text-gray-600">
         <div className="flex items-center gap-1">
           <Heart
             onClick={handleLike}
             className={`w-4 h-4 cursor-pointer ${
-              likes.includes(currentUser._id)
-                ? 'text-red-500 fill-red-500'
-                : ''
+              likes.includes(currentUser._id) ? 'text-red-500 fill-red-500' : ''
             }`}
           />
           <span className="text-sm">{likes.length}</span>
@@ -92,7 +112,6 @@ const PostCard = ({ post }) => {
           <span className="text-sm">7</span>
         </div>
       </div>
-
     </div>
   )
 }

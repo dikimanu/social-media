@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'   // ✅ useEffect added
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import {
   Users,
   UserPlus,
@@ -7,16 +8,23 @@ import {
   MessageSquare
 } from 'lucide-react'
 
-import {
-  dummyConnectionsData as connections,
-  dummyFollowersData as followers,
-  dummyFollowingData as following,
-  dummyPendingConnectionsData as pendingConnections
-} from '../assets/assets'
+import { useSelector, useDispatch } from 'react-redux'
+import { useAuth } from '@clerk/clerk-react'
+import { fetchConnections } from '../features/connections/connectionsSlice'
+import api from '../api/axios'
 
 const Connections = () => {
+  const dispatch = useDispatch()
+  const { getToken } = useAuth()
   const [currentTab, setCurrentTab] = useState('Followers')
   const navigate = useNavigate()
+
+  const {
+    connections,
+    pendingConnections,
+    followers,
+    following
+  } = useSelector((state) => state.connections)
 
   const dataArray = [
     { label: 'Followers', value: followers, icon: Users },
@@ -25,8 +33,54 @@ const Connections = () => {
     { label: 'Connections', value: connections, icon: Users },
   ]
 
+  useEffect(() => {
+    getToken().then((token) => {
+      dispatch(fetchConnections(token))
+    })
+  }, [])
+
   const activeData =
     dataArray.find((item) => item.label === currentTab)?.value || []
+
+  const handleUnfollow = async (userId) => {
+    try {
+      const token = await getToken()
+      const { data } = await api.post(
+        '/api/user/unfollow',
+        { id: userId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      if (data.success) {
+        toast.success(data.message)
+        dispatch(fetchConnections(token))
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  const acceptConnection = async (userId) => {
+    try {
+      const token = await getToken()
+      const { data } = await api.post(
+        '/api/user/accept',
+        { id: userId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      if (data.success) {
+        toast.success(data.message)
+        dispatch(fetchConnections(token))
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -97,13 +151,19 @@ const Connections = () => {
                 </button>
 
                 {currentTab === 'Following' && (
-                  <button className="px-3 py-1 text-sm rounded-md bg-red-50 text-red-600 hover:bg-red-100">
+                  <button
+                    onClick={() => handleUnfollow(user._id)}
+                    className="px-3 py-1 text-sm rounded-md bg-red-50 text-red-600 hover:bg-red-100"
+                  >
                     Unfollow
                   </button>
                 )}
 
                 {currentTab === 'Pending' && (
-                  <button className="px-3 py-1 text-sm rounded-md bg-green-50 text-green-600 hover:bg-green-100">
+                  <button
+                    onClick={() => acceptConnection(user._id)}
+                    className="px-3 py-1 text-sm rounded-md bg-green-50 text-green-600 hover:bg-green-100"
+                  >
                     Accept
                   </button>
                 )}

@@ -1,21 +1,68 @@
 import React, { useState } from 'react'
-import { dummyUserData } from '../assets/assets'
 import { X, Image } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useSelector } from 'react-redux'
+import { useAuth } from '@clerk/clerk-react'
+import api from '../api/axios'
+import { useNavigate } from 'react-router-dom'
 
 const CreatePost = () => {
+  const navigate = useNavigate()
   const [content, setContent] = useState('')
   const [images, setImages] = useState([])
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async () => {}
+  const { getToken } = useAuth()
+  const user = useSelector((state) => state.user.value)
 
-  const user = dummyUserData
+  const handleSubmit = async () => {
+    if (!images.length && !content) {
+      toast.error('Please add at least one image or text')
+      return
+    }
+
+    setLoading(true)
+    const postType =
+      images.length && content
+        ? 'text_with_image'
+        : images.length
+        ? 'image'
+        : 'text'
+
+    try {
+      const formData = new FormData()
+      formData.append('content', content)
+      formData.append('post_type', postType)
+
+      images.forEach((image) => {
+        formData.append('images', image)
+      })
+
+      const token = await getToken()
+      const { data } = await api.post(
+        '/api/post/add',  
+        formData,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      )
+
+      if (data.success) {
+        navigate('/')
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <div className="max-w-6xl mx-auto p-6">
-        
+
         {/* Title */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
@@ -28,7 +75,7 @@ const CreatePost = () => {
 
         {/* Form */}
         <div className="max-w-xl bg-white p-4 sm:p-8 rounded-xl shadow-md space-y-4">
-          
+
           {/* Header */}
           <div className="flex items-center gap-4">
             <img
@@ -79,7 +126,7 @@ const CreatePost = () => {
 
           {/* Bottom Bar */}
           <div className="flex items-center justify-between pt-3 border-t">
-            
+
             <label
               htmlFor="images"
               className="cursor-pointer text-gray-600 hover:text-indigo-600"
@@ -103,8 +150,8 @@ const CreatePost = () => {
               onClick={() =>
                 toast.promise(handleSubmit(), {
                   loading: 'Uploading...',
-                  success: <p>Post Added</p>,
-                  error: <p>Post Not Added</p>,
+                  success: 'Post Added',
+                  error: 'Post Not Added',
                 })
               }
               className="px-5 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium
