@@ -90,11 +90,11 @@ const RecentMessages = ({ mobile }) => {
 
   // ------------------ Mobile ------------------
   return (
-    <>
+    <> 
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="sm:hidden fixed bottom-3 right-3 z-50 p-3 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-2xl hover:shadow-pink-400 transition transform hover:-translate-y-1"
+          className="sm:hidden fixed bottom-30 right-3 z-50 p-3 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-2xl hover:shadow-pink-400 transition transform hover:-translate-y-1 "
         >
           <MessageCircleIcon size={20} className="text-white" />
         </button>
