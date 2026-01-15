@@ -19,7 +19,6 @@ const ProfileModal = ({ setShowEdit }) => {
     full_name: user.full_name || '',
   })
 
-  // Cleanup object URLs to avoid memory leaks
   useEffect(() => {
     return () => {
       if (editForm.profile_picture) URL.revokeObjectURL(editForm.profile_picture)
@@ -50,23 +49,41 @@ const ProfileModal = ({ setShowEdit }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto">
-      <div className="max-w-2xl mx-auto py-8 px-4">
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Edit Profile</h1>
+    <div className="fixed inset-0 z-50
+                    bg-gradient-to-br from-black/60 via-black/50 to-black/60
+                    backdrop-blur-sm overflow-y-auto">
+
+      <div className="max-w-2xl mx-auto py-10 px-4">
+        <div className="rounded-2xl p-6
+                        bg-gradient-to-br from-white via-indigo-50 to-purple-100
+                        shadow-2xl shadow-indigo-400/30
+                        border border-white/60">
+
+          <h1 className="text-2xl font-bold mb-6
+                         bg-gradient-to-r from-indigo-600 to-purple-600
+                         bg-clip-text text-transparent">
+            Edit Profile
+          </h1>
 
           <form
-            className="space-y-5"
+            className="space-y-6"
             onSubmit={(e) =>
-              toast.promise(handleSaveProfile(e), { loading: 'Saving...', success: 'Saved!', error: 'Failed' })
+              toast.promise(handleSaveProfile(e), {
+                loading: 'Saving...',
+                success: 'Saved!',
+                error: 'Failed',
+              })
             }
           >
             {/* Profile Picture */}
             <div>
-              <label className="text-sm font-medium text-gray-700">Profile Picture</label>
+              <label className="text-sm font-medium text-slate-700">
+                Profile Picture
+              </label>
+
               <label
                 htmlFor="profile_picture"
-                className="relative group block w-fit mt-2 cursor-pointer"
+                className="relative group block w-fit mt-3 cursor-pointer"
               >
                 <img
                   src={
@@ -75,12 +92,20 @@ const ProfileModal = ({ setShowEdit }) => {
                       : user.profile_picture || ''
                   }
                   alt=""
-                  className="w-24 h-24 rounded-full object-cover"
+                  className="w-28 h-28 rounded-full object-cover
+                             ring-4 ring-indigo-400/40
+                             shadow-lg shadow-indigo-300/40"
                 />
-                <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                  <Pencil className="w-5 h-5 text-white" />
+
+                <div className="absolute inset-0 rounded-full
+                                bg-gradient-to-tr from-indigo-600/60 to-purple-600/60
+                                opacity-0 group-hover:opacity-100
+                                flex items-center justify-center
+                                transition">
+                  <Pencil className="w-6 h-6 text-white drop-shadow" />
                 </div>
               </label>
+
               <input
                 hidden
                 type="file"
@@ -94,10 +119,13 @@ const ProfileModal = ({ setShowEdit }) => {
 
             {/* Cover Photo */}
             <div>
-              <label className="text-sm font-medium text-gray-700">Cover Photo</label>
+              <label className="text-sm font-medium text-slate-700">
+                Cover Photo
+              </label>
+
               <label
                 htmlFor="cover_photo"
-                className="relative group block mt-2 cursor-pointer"
+                className="relative group block mt-3 cursor-pointer"
               >
                 <img
                   src={
@@ -106,12 +134,19 @@ const ProfileModal = ({ setShowEdit }) => {
                       : user.cover_photo || ''
                   }
                   alt=""
-                  className="w-full h-40 object-cover rounded-lg"
+                  className="w-full h-44 object-cover rounded-xl
+                             shadow-lg"
                 />
-                <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                  <Pencil className="w-5 h-5 text-white" />
+
+                <div className="absolute inset-0 rounded-xl
+                                bg-gradient-to-tr from-indigo-600/60 to-purple-600/60
+                                opacity-0 group-hover:opacity-100
+                                flex items-center justify-center
+                                transition">
+                  <Pencil className="w-6 h-6 text-white drop-shadow" />
                 </div>
               </label>
+
               <input
                 hidden
                 type="file"
@@ -123,58 +158,50 @@ const ProfileModal = ({ setShowEdit }) => {
               />
             </div>
 
-            {/* Name */}
-            <div>
-              <label className="text-sm font-medium">Name</label>
-              <input
-                type="text"
-                className="w-full mt-1 px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Enter full name"
-                value={editForm.full_name}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, full_name: e.target.value })
-                }
-              />
-            </div>
-
-            {/* Username */}
-            <div>
-              <label className="text-sm font-medium">Username</label>
-              <input
-                type="text"
-                className="w-full mt-1 px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Enter username"
-                value={editForm.username}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, username: e.target.value })
-                }
-              />
-            </div>
+            {/* Inputs */}
+            {[
+              { label: 'Name', value: editForm.full_name, key: 'full_name', placeholder: 'Enter full name' },
+              { label: 'Username', value: editForm.username, key: 'username', placeholder: 'Enter username' },
+              { label: 'Location', value: editForm.location, key: 'location', placeholder: 'Enter location' },
+            ].map((field) => (
+              <div key={field.key}>
+                <label className="text-sm font-medium text-slate-700">
+                  {field.label}
+                </label>
+                <input
+                  type="text"
+                  className="w-full mt-1 px-4 py-2.5 rounded-xl
+                             bg-white/80 backdrop-blur
+                             border border-indigo-200/50
+                             outline-none
+                             focus:ring-2 focus:ring-indigo-500/50
+                             shadow-sm"
+                  placeholder={field.placeholder}
+                  value={field.value}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, [field.key]: e.target.value })
+                  }
+                />
+              </div>
+            ))}
 
             {/* Bio */}
             <div>
-              <label className="text-sm font-medium">Bio</label>
+              <label className="text-sm font-medium text-slate-700">
+                Bio
+              </label>
               <textarea
                 rows={3}
-                className="w-full mt-1 px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full mt-1 px-4 py-2.5 rounded-xl
+                           bg-white/80 backdrop-blur
+                           border border-indigo-200/50
+                           outline-none
+                           focus:ring-2 focus:ring-indigo-500/50
+                           shadow-sm resize-none"
                 placeholder="Enter bio"
                 value={editForm.bio}
                 onChange={(e) =>
                   setEditForm({ ...editForm, bio: e.target.value })
-                }
-              />
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="text-sm font-medium">Location</label>
-              <input
-                type="text"
-                className="w-full mt-1 px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Enter location"
-                value={editForm.location}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, location: e.target.value })
                 }
               />
             </div>
@@ -184,13 +211,22 @@ const ProfileModal = ({ setShowEdit }) => {
               <button
                 type="button"
                 onClick={() => setShowEdit(false)}
-                className="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100"
+                className="px-5 py-2.5 rounded-xl
+                           bg-white/70 border border-slate-300
+                           text-slate-600
+                           hover:bg-white hover:shadow
+                           transition"
               >
                 Cancel
               </button>
+
               <button
                 type="submit"
-                className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                className="px-6 py-2.5 rounded-xl text-white font-medium
+                           bg-gradient-to-r from-indigo-500 to-purple-600
+                           hover:from-indigo-600 hover:to-purple-700
+                           shadow-lg shadow-indigo-400/40
+                           active:scale-95 transition"
               >
                 Save Changes
               </button>

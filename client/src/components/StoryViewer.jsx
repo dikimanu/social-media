@@ -83,15 +83,15 @@ const StoryViewer = ({ viewStory, setViewStory }) => {
       }}
     >
       {/* Progress bar */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-white/20">
+      <div className="absolute top-0 left-0 w-full h-1 bg-white/20 z-20">
         <div
           className="h-full bg-white transition-all"
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      {/* User info */}
-      <div className="absolute top-4 left-4 flex items-center gap-3 text-white z-10">
+      {/* User info (unchanged) */}
+      <div className="absolute top-4 left-4 flex items-center gap-3 text-white z-20">
         <img
           src={viewStory.user?.profile_picture}
           alt=""
@@ -103,15 +103,21 @@ const StoryViewer = ({ viewStory, setViewStory }) => {
         </div>
       </div>
 
-      {/* Close button */}
+      {/* Close button — TOP CENTER */}
       <button
         onClick={() => setViewStory(null)}
-        className="absolute top-4 right-4 p-2 text-white hover:bg-white/10 rounded-full z-10"
+        className="
+          absolute top-4 left-1/2 -translate-x-1/2
+          p-2 text-white
+          hover:bg-white/10 rounded-full
+          z-20
+        "
+        aria-label="Close story"
       >
         <X />
       </button>
 
-      {/* Story content */}
+      {/* Story content (unchanged for desktop) */}
       <div className="w-full h-full flex items-center justify-center">
         {renderContent()}
       </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'   // ✅ useEffect added
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
@@ -83,53 +83,68 @@ const Connections = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen
+                    bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
       <div className="max-w-6xl mx-auto p-6">
 
         {/* Title */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+        <div className="mb-10">
+          <h1 className="text-3xl font-bold
+                         bg-gradient-to-r from-indigo-600 to-purple-600
+                         bg-clip-text text-transparent">
             Connections
           </h1>
-          <p className="text-slate-600">
+          <p className="text-slate-600 mt-1">
             Manage your network and discover new connections
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 flex-wrap mb-6">
-          {dataArray.map((tab) => (
-            <button
-              key={tab.label}
-              onClick={() => setCurrentTab(tab.label)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition
-                ${
-                  currentTab === tab.label
-                    ? 'bg-white shadow font-medium text-slate-900'
-                    : 'text-slate-500 hover:bg-white hover:text-slate-900'
-                }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex gap-3 flex-wrap mb-8">
+          {dataArray.map((tab) => {
+            const active = currentTab === tab.label
+            return (
+              <button
+                key={tab.label}
+                onClick={() => setCurrentTab(tab.label)}
+                className={`
+                  flex items-center gap-2 px-5 py-2 rounded-full text-sm
+                  transition-all duration-300
+                  ${active
+                    ? 'bg-white shadow-lg text-indigo-600 scale-[1.03]'
+                    : 'text-slate-500 hover:bg-white/70 hover:text-slate-800'}
+                `}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            )
+          })}
         </div>
 
-        {/* Connections List */}
-        <div className="flex flex-wrap gap-6">
+        {/* Cards */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {activeData.map((user) => (
             <div
               key={user._id}
-              className="w-full sm:w-[48%] lg:w-[31%] bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition"
+              className="
+                bg-white/80 backdrop-blur-xl
+                rounded-2xl p-5
+                shadow-md hover:shadow-xl
+                transition-all duration-300
+                hover:-translate-y-1
+              "
             >
+              {/* Header */}
               <div className="flex items-center gap-4">
                 <img
                   src={user.profile_picture}
                   alt=""
-                  className="w-12 h-12 rounded-full object-cover"
+                  className="w-14 h-14 rounded-full object-cover
+                             ring-2 ring-indigo-500/30"
                 />
                 <div className="flex-1">
-                  <p className="font-medium text-slate-800">
+                  <p className="font-semibold text-slate-800">
                     {user.full_name}
                   </p>
                   <p className="text-slate-500 text-sm">
@@ -138,14 +153,20 @@ const Connections = () => {
                 </div>
               </div>
 
-              <p className="text-sm text-gray-600 mt-3">
+              {/* Bio */}
+              <p className="text-sm text-slate-600 mt-3 line-clamp-2">
                 {user.bio.slice(0, 30)}...
               </p>
 
-              <div className="flex flex-wrap gap-2 mt-4">
+              {/* Actions */}
+              <div className="flex flex-wrap gap-2 mt-5">
                 <button
                   onClick={() => navigate(`/profile/${user._id}`)}
-                  className="px-3 py-1 text-sm rounded-md bg-slate-100 hover:bg-slate-200"
+                  className="
+                    px-3 py-1.5 text-sm rounded-full
+                    bg-slate-100 hover:bg-slate-200
+                    transition
+                  "
                 >
                   View Profile
                 </button>
@@ -153,7 +174,11 @@ const Connections = () => {
                 {currentTab === 'Following' && (
                   <button
                     onClick={() => handleUnfollow(user._id)}
-                    className="px-3 py-1 text-sm rounded-md bg-red-50 text-red-600 hover:bg-red-100"
+                    className="
+                      px-3 py-1.5 text-sm rounded-full
+                      bg-red-100 text-red-600
+                      hover:bg-red-200 transition
+                    "
                   >
                     Unfollow
                   </button>
@@ -162,7 +187,11 @@ const Connections = () => {
                 {currentTab === 'Pending' && (
                   <button
                     onClick={() => acceptConnection(user._id)}
-                    className="px-3 py-1 text-sm rounded-md bg-green-50 text-green-600 hover:bg-green-100"
+                    className="
+                      px-3 py-1.5 text-sm rounded-full
+                      bg-green-100 text-green-600
+                      hover:bg-green-200 transition
+                    "
                   >
                     Accept
                   </button>
@@ -171,7 +200,11 @@ const Connections = () => {
                 {currentTab === 'Connections' && (
                   <button
                     onClick={() => navigate(`/messages/${user._id}`)}
-                    className="flex items-center gap-1 px-3 py-1 text-sm rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                    className="
+                      flex items-center gap-1 px-3 py-1.5 text-sm rounded-full
+                      bg-gradient-to-r from-indigo-500 to-purple-500
+                      text-white hover:brightness-110 transition
+                    "
                   >
                     <MessageSquare className="w-4 h-4" />
                     Message

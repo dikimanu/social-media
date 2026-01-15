@@ -5,210 +5,194 @@ import api from '../api/axios'
 import { useAuth } from '@clerk/clerk-react'
 
 const StoryModal = ({ setShowModal, fetchStories }) => {
-  const bgColors = [
-    '#ef4444', '#3b82f6', '#8b5cf6',
-    '#22c55e', '#eab308', '#000000',
-    '#ffffff', '#6b7280', '#f97316',
-    '#0ea5e9', '#ec4899', '#7c3aed'
+  const colors = [
+    '#ef4444', '#3b82f6', '#8b5cf6', '#22c55e',
+    '#eab308', '#000000', '#6b7280'
   ]
 
   const [mode, setMode] = useState('text')
-  const [background, setBackground] = useState(bgColors[0])
+  const [background, setBackground] = useState(colors[0])
   const [text, setText] = useState('')
   const [media, setMedia] = useState(null)
-  const [previewUrl, setPreviewUrl] = useState(null)
+  const [preview, setPreview] = useState(null)
   const { getToken } = useAuth()
-  const MAX_VIDEO_DURATION = 60 // seconds
-  const MAX_VIDEO_SIZE_MB = 50 // MB
-
-  const handleMediaUpload = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Revoke previous preview to prevent memory leaks
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setPreviewUrl(null)
-
-    if (file.type.startsWith("video")) {
-      if (file.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
-        toast.error(`Video cannot exceed ${MAX_VIDEO_SIZE_MB} MB.`)
-        setMedia(null)
-        return
-      }
-
-      const video = document.createElement('video')
-      video.preload = 'metadata'
-
-      video.addEventListener('loadedmetadata', () => {
-        window.URL.revokeObjectURL(video.src)
-        if (video.duration > MAX_VIDEO_DURATION) {
-          toast.error(`Video duration cannot exceed ${MAX_VIDEO_DURATION} seconds.`)
-          setMedia(null)
-          setPreviewUrl(null)
-        } else {
-          setMedia(file)
-          setPreviewUrl(URL.createObjectURL(file))
-          setText('')
-          setMode('media')
-        }
-      })
-
-      video.src = URL.createObjectURL(file)
-    } else if (file.type.startsWith("image")) {
-      setMedia(file)
-      setPreviewUrl(URL.createObjectURL(file))
-      setText('')
-      setMode('media')
-    }
-  }
 
   useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl)
-    }
-  }, [previewUrl])
+    return () => preview && URL.revokeObjectURL(preview)
+  }, [preview])
 
-  const handleCreateStory = async () => {
-    const media_type =
-      mode === 'media'
-        ? media?.type.startsWith('image') ? 'image' : 'video'
-        : 'text'
+  const handleUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setMedia(file)
+    setPreview(URL.createObjectURL(file))
+    setMode('media')
+    setText('')
+  }
 
-    if (media_type === 'text' && !text.trim()) {
-      toast.error("Please enter some text")
+  const handleCreate = async () => {
+    if (mode === 'text' && !text.trim()) {
+      toast.error('Enter some text')
       return
     }
 
     try {
-      const formData = new FormData()
-      formData.append('content', text)
-      formData.append('media_type', media_type)
-      if (media) formData.append('media', media)
-      formData.append('background_color', background)
+      const form = new FormData()
+      form.append('content', text)
+      form.append(
+        'media_type',
+        mode === 'media'
+          ? media.type.startsWith('image') ? 'image' : 'video'
+          : 'text'
+      )
+      if (media) form.append('media', media)
+      form.append('background_color', background)
 
       const token = await getToken()
-      const { data } = await api.post('/api/story/create', formData, {
+      const { data } = await api.post('/api/story/create', form, {
         headers: { Authorization: `Bearer ${token}` }
       })
 
       if (data.success) {
+        toast.success('Story posted')
         setShowModal(false)
-        toast.success("Story created successfully")
         fetchStories()
-      } else {
-        toast.error(data.message)
       }
-    } catch (error) {
-      toast.error(error.response?.data?.message || error.message)
+    } catch (err) {
+      toast.error(err.message)
     }
   }
 
-  const isTextLightBg = ['#ffffff', '#eab308'].includes(background)
-
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Create Story Modal"
-    >
-      <div className="w-full max-w-md text-white">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="w-full max-w-sm text-white">
+
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => setShowModal(false)}
-            className="p-2 hover:bg-white/10 rounded-full"
-            aria-label="Close Story Modal"
+            className="p-2 rounded-full hover:bg-white/10 transition"
           >
             <ArrowLeft />
           </button>
-          <h2 className="text-lg font-semibold">Create Story</h2>
-          <span className="w-10" />
+
+          <span className="font-semibold tracking-wide">
+            Create Story
+          </span>
+
+          <span className="w-8" />
         </div>
 
         {/* Preview */}
         <div
-          className="rounded-lg h-96 flex items-center justify-center relative overflow-hidden"
+          className="
+            relative rounded-2xl h-[360px] sm:h-96
+            flex items-center justify-center overflow-hidden
+            shadow-2xl border border-white/20
+          "
           style={{ backgroundColor: background }}
         >
+          {/* subtle overlay */}
+          <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+
           {mode === 'text' && (
             <textarea
-              className={`bg-transparent w-full h-full p-6 text-lg resize-none focus:outline-none ${
-                isTextLightBg ? 'text-black' : 'text-white'
-              }`}
-              placeholder="What's on your mind?"
               value={text}
               onChange={(e) => setText(e.target.value)}
+              placeholder="What's on your mind?"
+              className="
+                relative z-10 w-full h-full bg-transparent
+                resize-none p-6 text-xl font-medium
+                text-center outline-none placeholder-white/70
+              "
             />
           )}
 
-          {mode === 'media' && previewUrl && (
-            media?.type.startsWith('image') ? (
-              <img src={previewUrl} alt="preview" className="object-contain max-h-full" />
+          {mode === 'media' && preview && (
+            media.type.startsWith('image') ? (
+              <img
+                src={preview}
+                className="relative z-10 object-contain h-full"
+              />
             ) : (
-              <video src={previewUrl} className="object-contain max-h-full" controls />
+              <video
+                src={preview}
+                controls
+                className="relative z-10 object-contain h-full"
+              />
             )
           )}
         </div>
 
-        {/* Background picker */}
+        {/* Colors */}
         {mode === 'text' && (
-          <div className="flex mt-4 gap-2 flex-wrap">
-            {bgColors.map((color) => (
+          <div className="flex flex-wrap gap-2 mt-4 justify-center">
+            {colors.map((c) => (
               <button
-                key={color}
-                onClick={() => setBackground(color)}
-                className="w-6 h-6 rounded-full ring ring-white/40"
-                style={{ backgroundColor: color }}
-                aria-label={`Select background color ${color}`}
+                key={c}
+                onClick={() => setBackground(c)}
+                className="
+                  w-7 h-7 rounded-full
+                  ring-2 ring-white/40
+                  hover:scale-110 transition
+                "
+                style={{ backgroundColor: c }}
               />
             ))}
           </div>
         )}
 
         {/* Controls */}
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-3 mt-4">
           <button
             onClick={() => {
               setMode('text')
               setMedia(null)
-              if (previewUrl) URL.revokeObjectURL(previewUrl)
-              setPreviewUrl(null)
+              setPreview(null)
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded ${
-              mode === 'text' ? 'bg-white text-black' : 'bg-white/10'
-            }`}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-full
+              transition font-medium
+              ${
+                mode === 'text'
+                  ? 'bg-white text-black shadow'
+                  : 'bg-white/10 hover:bg-white/20'
+              }
+            `}
           >
-            <TextIcon size={18} /> Text
+            <TextIcon size={16} /> Text
           </button>
 
           <label
-            className={`flex items-center gap-2 px-4 py-2 rounded cursor-pointer ${
-              mode === 'media' ? 'bg-white text-black' : 'bg-white/10'
-            }`}
+            className="
+              flex items-center gap-2 px-4 py-2 rounded-full
+              bg-white/10 hover:bg-white/20
+              cursor-pointer transition font-medium
+            "
           >
-            <ImageIcon size={18} /> Media
+            <ImageIcon size={16} /> Media
             <input
               type="file"
-              accept="image/*,video/*"
               hidden
-              onChange={handleMediaUpload}
+              accept="image/*,video/*"
+              onChange={handleUpload}
             />
           </label>
         </div>
 
-        {/* Submit */}
+        {/* Share Button */}
         <button
-          onClick={() =>
-            toast.promise(handleCreateStory(), {
-              loading: 'Saving...',
-            })
-          }
-          disabled={mode === 'text' ? !text.trim() : !media}
-          className="mt-4 w-full flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed py-2 rounded"
+          onClick={handleCreate}
+          className="
+            w-full mt-5 py-3 rounded-full
+            bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500
+            hover:from-indigo-600 hover:to-pink-600
+            font-semibold tracking-wide
+            flex items-center justify-center gap-2
+            shadow-lg transition
+          "
         >
-          <Sparkle size={18} />
-          Share Story
+          <Sparkle size={16} /> Share Story
         </button>
       </div>
     </div>
