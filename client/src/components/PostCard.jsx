@@ -13,10 +13,9 @@ const PostCard = ({ post }) => {
   const navigate = useNavigate()
   const [likes, setLikes] = useState(post.likes || [])
 
-  // Highlight hashtags
   const postWithHashtags = post.content?.replace(
     /(#\w+)/g,
-    '<span class="text-indigo-600 font-semibold">$1</span>'
+    '<span class="text-indigo-500 font-semibold">$1</span>'
   )
 
   const handleLike = async () => {
@@ -27,7 +26,6 @@ const PostCard = ({ post }) => {
         { postId: post._id },
         { headers: { Authorization: `Bearer ${token}` } }
       )
-
       if (data.success) {
         toast.success(data.message)
         setLikes((prev) =>
@@ -35,98 +33,76 @@ const PostCard = ({ post }) => {
             ? prev.filter((id) => id !== currentUser._id)
             : [...prev, currentUser._id]
         )
-      } else {
-        toast.error(data.message)
-      }
-    } catch (error) {
-      toast.error(error.message)
+      } else toast.error(data.message)
+    } catch (err) {
+      toast.error(err.message)
     }
   }
 
   return (
-    <div
-      className="rounded-2xl p-5 space-y-4
-                 bg-gradient-to-br from-white via-indigo-50 to-purple-100
-                 shadow-xl shadow-indigo-300/30
-                 border border-white/60
-                 backdrop-blur-sm"
-    >
-      {/* User info */}
+    <div className="w-full max-w-full rounded-2xl p-4
+                    bg-white/30 backdrop-blur-xl border border-white/20
+                    shadow-lg shadow-purple-300/20
+                    hover:shadow-purple-400/40 hover:-translate-y-1
+                    transition-all duration-300 space-y-3">
+      {/* User */}
       <div
+        className="flex items-center gap-2 cursor-pointer"
         onClick={() => navigate(`/profile/${post.user?._id}`)}
-        className="flex items-center gap-3 cursor-pointer group"
       >
         <img
-          src={post.user?.profile_picture || ''}
+          src={post.user?.profile_picture ?? ''}
           alt=""
-          className="w-11 h-11 rounded-full object-cover
-                     ring-2 ring-indigo-400/40
-                     shadow-md group-hover:scale-105 transition"
+          className="w-10 h-10 rounded-full object-cover ring-1 ring-purple-400 shadow-sm"
         />
-        <div>
-          <div className="flex items-center gap-1 font-semibold text-slate-800">
-            <span>{post.user?.full_name || 'Unknown'}</span>
-            <BadgeCheck className="w-4 h-4 text-indigo-500 drop-shadow" />
-          </div>
-          <div className="text-xs text-slate-500">
-            @{post.user?.username || 'username'} · {moment(post.createdAt).fromNow()}
-          </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold text-purple-900 flex items-center gap-1">
+            {post.user?.full_name ?? 'Unknown'} <BadgeCheck className="w-3 h-3 text-indigo-500" />
+          </span>
+          <span className="text-[10px] text-gray-600">
+            @{post.user?.username ?? 'username'} · {moment(post.createdAt).fromNow()}
+          </span>
         </div>
       </div>
 
       {/* Content */}
       {post.content && (
         <div
-          className="text-slate-700 leading-relaxed"
+          className="text-sm text-gray-800"
           dangerouslySetInnerHTML={{ __html: postWithHashtags }}
         />
       )}
 
       {/* Images */}
       {post.image_urls?.length > 0 && (
-        <div className="grid grid-cols-2 gap-2">
-          {post.image_urls.map((img, index) => (
+        <div className={`grid ${post.image_urls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
+          {post.image_urls.map((img, i) => (
             <img
-              key={index}
+              key={i}
               src={img}
               alt=""
-              className={`w-full rounded-xl object-cover
-                          shadow-md hover:shadow-lg transition
-                          ${
-                            post.image_urls.length === 1
-                              ? 'col-span-2 max-h-[420px]'
-                              : 'h-48'
-                          }`}
+              className="w-full h-auto rounded-xl object-cover shadow-md hover:shadow-lg transition"
             />
           ))}
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-8 pt-2 text-slate-600">
-        <div className="flex items-center gap-1.5 group">
-          <Heart
-            onClick={handleLike}
-            className={`w-4.5 h-4.5 cursor-pointer transition-all
-              ${
-                likes.includes(currentUser._id)
-                  ? 'text-pink-500 fill-pink-500 drop-shadow'
-                  : 'group-hover:text-pink-500'
-              }`}
-          />
-          <span className="text-sm font-medium">
-            {likes.length}
-          </span>
+      <div className="flex items-center gap-4 text-gray-700">
+        <div
+          className="flex items-center gap-1 cursor-pointer hover:text-pink-500 transition"
+          onClick={handleLike}
+        >
+          <Heart className={`w-4 h-4 ${likes.includes(currentUser._id) ? 'text-pink-500 fill-pink-500 drop-shadow' : ''}`} />
+          <span className="text-xs">{likes.length}</span>
         </div>
-
-        <div className="flex items-center gap-1.5 group hover:text-indigo-500 transition">
-          <MessageCircle className="w-4.5 h-4.5" />
-          <span className="text-sm font-medium">12</span>
+        <div className="flex items-center gap-1 hover:text-indigo-500 transition">
+          <MessageCircle className="w-4 h-4" />
+          <span className="text-xs">12</span>
         </div>
-
-        <div className="flex items-center gap-1.5 group hover:text-purple-500 transition">
-          <Share2 className="w-4.5 h-4.5" />
-          <span className="text-sm font-medium">7</span>
+        <div className="flex items-center gap-1 hover:text-purple-500 transition">
+          <Share2 className="w-4 h-4" />
+          <span className="text-xs">7</span>
         </div>
       </div>
     </div>

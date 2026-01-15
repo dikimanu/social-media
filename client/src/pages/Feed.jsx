@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import { assets } from '../assets/assets'
 import Loading from '../components/Loading'
 import StoriesBar from '../components/StoriesBar'
 import PostCard from '../components/PostCard'
@@ -22,7 +21,7 @@ const Feed = () => {
         const token = await getToken()
         const { data } = await api.get('/api/post/feed', {
           headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal
+          signal: controller.signal,
         })
 
         if (data.success) setFeeds(data.posts)
@@ -41,28 +40,27 @@ const Feed = () => {
   if (loading) return <Loading />
 
   return (
-    <div className="h-full overflow-y-scroll no-scrollbar py-10 flex justify-start lg:gap-8 relative">
-      {/* Left column: Stories + Posts */}
-      <div className="w-full max-w-2xl px-2 sm:px-4">
+    <div className="flex flex-col lg:flex-row w-full max-w-full h-screen overflow-x-hidden bg-gray-50">
+      {/* Main feed column */}
+      <div className="w-full lg:flex-1 overflow-y-auto px-2 sm:px-4 py-2">
         <StoriesBar />
-        <div className="p-2 sm:p-4 space-y-6">
+
+        <div className="mt-2 space-y-4">
           {feeds.length === 0 ? (
-            <p className="text-center text-gray-500">No posts available.</p>
+            <p className="text-center text-xs text-gray-500">No posts available.</p>
           ) : (
             feeds.map((post) => <PostCard key={post._id} post={post} />)
           )}
         </div>
       </div>
 
-      {/* Desktop sidebar */}
-      <div className="hidden lg:flex flex-col w-80 shrink-0 sticky top-0 space-y-6">
+      {/* Desktop sidebar: Sponsored + RecentMessages */}
+      <div className="hidden lg:flex flex-col w-80 shrink-0 sticky top-0 space-y-4 p-2">
         <RecentMessages mobile={false} />
       </div>
 
-      {/* Mobile floating button */}
-      <div className="lg:hidden">
-        <RecentMessages mobile={true} />
-      </div>
+      {/* Mobile floating messages */}
+      <RecentMessages mobile />
     </div>
   )
 }
